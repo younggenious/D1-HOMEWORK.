@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D-1 HOMEWORK V1.0</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,"Noto Sans KR",sans-serif;background:#f3f5f8;color:#1f2937}
+.header{background:#111827;color:#fff;padding:24px 20px}
+.header h1{margin:0 0 8px;font-size:28px}
+.header p{margin:0;color:#cbd5e1}
+.container{max-width:900px;margin:0 auto;padding:18px}
+.card{background:#fff;border-radius:16px;padding:20px;margin-bottom:18px;box-shadow:0 5px 18px rgba(0,0,0,.07)}
+.card h2{margin:0 0 15px;font-size:21px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+label{font-size:13px;font-weight:700;color:#475569;display:block;margin-bottom:6px}
+input,select,textarea{width:100%;padding:11px 12px;border:1px solid #d1d5db;border-radius:10px;font-size:14px}
+textarea{min-height:80px;resize:vertical}
+button{border:0;border-radius:10px;padding:11px 15px;font-weight:700;cursor:pointer}
+.primary{background:#111827;color:#fff}
+.secondary{background:#e5e7eb;color:#111827}
+button:hover{opacity:.9}
+.form-actions{margin-top:14px;display:flex;gap:8px}
+.homework{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #e5e7eb}
+.homework:last-child{border-bottom:0}
+.homework.done .content{text-decoration:line-through;color:#94a3b8}
+.homework .content{flex:1}
+.meta{font-size:12px;color:#64748b;margin-top:4px}
+.delete{background:#fee2e2;color:#b91c1c;padding:7px 10px}
+.empty{color:#94a3b8;text-align:center;padding:15px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat{background:#f8fafc;border-radius:12px;padding:15px;text-align:center}
+.stat b{display:block;font-size:24px;margin-bottom:5px}
+.news-head{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.news-badge{font-size:12px;background:#e0f2fe;color:#0369a1;padding:5px 9px;border-radius:999px;font-weight:700}
+.news-title{font-size:20px;font-weight:800;line-height:1.4;margin:12px 0}
+.news-desc{color:#475569;line-height:1.6}
+.news-meta{font-size:12px;color:#64748b;margin-top:8px}
+.news-tags{display:flex;flex-wrap:wrap;gap:7px;margin:13px 0}
+.tag{background:#f1f5f9;padding:6px 9px;border-radius:999px;font-size:12px}
+.news-actions{display:flex;gap:8px;flex-wrap:wrap}
+.small{font-size:12px;color:#64748b}
+.loading{color:#64748b}
+.error{color:#b91c1c;background:#fef2f2;padding:10px;border-radius:10px}
+
+.assembly-layout{display:grid;grid-template-columns:250px minmax(0,1fr) 220px;gap:12px}
+.parts-panel,.stage-panel,.inspector{min-width:0}
+.part-card{display:flex;align-items:center;gap:10px;padding:10px;margin-bottom:7px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0;cursor:grab;transition:.15s}
+.part-card:hover{transform:translateY(-1px);border-color:#94a3b8;background:#f1f5f9}
+.part-icon{width:34px;height:34px;border-radius:9px;background:#e2e8f0;display:grid;place-items:center;font-size:19px;font-weight:900;flex:none}
+#assemblyStage{height:460px;border-radius:14px;overflow:hidden;background:#0b1220;position:relative;border:1px solid #1e293b}
+#assemblyStage canvas{display:block;width:100%;height:100%}
+.wasd-help{position:absolute;left:10px;top:10px;z-index:6;background:rgba(15,23,42,.86);color:#e2e8f0;padding:8px 10px;border-radius:10px;font-size:12px;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+#dropHint{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#94a3b8;text-align:center;pointer-events:none;font-weight:700;line-height:1.7}
+.stage-badge{position:absolute;right:10px;top:10px;background:#1e293b;color:#93c5fd;padding:5px 8px;border-radius:8px;font-size:11px;font-weight:800;pointer-events:none}
+.toolbar{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.toolbar button{padding:9px 10px}
+.inspector{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px}
+.inspector h3{margin:0 0 8px;font-size:16px}.selected-name{font-weight:800;background:#e2e8f0;border-radius:8px;padding:8px;margin-bottom:9px}
+.axis-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.axis-grid label{font-size:11px}.axis-grid input{padding:8px;font-size:12px}
+.delete{background:#fee2e2;color:#b91c1c}
+@media(max-width:1000px){.assembly-layout{grid-template-columns:220px minmax(0,1fr)}.inspector{grid-column:1/-1}.axis-grid{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:650px){.assembly-layout{grid-template-columns:1fr}.inspector{grid-column:auto}.axis-grid{grid-template-columns:1fr 1fr}#assemblyStage{height:380px}}
+
+@media(max-width:650px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:1fr}.header h1{font-size:24px}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
+</head>
+<body>
+<header class="header">
+  <h1>🤖 D-1 HOMEWORK</h1>
+  <p id="dateText"></p>
+</header>
+
+<main class="container">
+  <section class="card">
+    <h2>📌 오늘의 숙제</h2>
+    <div id="todayHomework"></div>
+  </section>
+
+  <section class="card">
+    <div class="news-head">
+      <h2>🤖 오늘의 로봇공학 뉴스</h2>
+      <span class="news-badge">LIVE RSS</span>
+    </div>
+    <div id="robotNews" class="loading">최신 로봇공학 기사를 불러오는 중...</div>
+  </section>
+
+  
+
+<section class="card" id="robotGame">
+<h2>🦾 ROBOT LAB V2 — Mesh 3D 조립실</h2>
+<p class="small">부품을 검색하고 → 카드를 드래그하거나 클릭 → 실제 <b>THREE.Mesh + BufferGeometry</b>로 조립합니다. 부품을 선택하면 이동/회전/크기를 조절할 수 있습니다.</p>
+
+<div class="assembly-layout">
+  <aside class="parts-panel">
+    <label>🔎 부품 검색</label>
+    <input id="partSearch" placeholder="예: wheel, motor, LiDAR, arm" oninput="filterParts()">
+    <div class="small" style="margin:8px 0">💡 부품 카드를 작업대로 드래그하거나 클릭하세요.</div>
+    <div id="partsPalette"></div>
+  </aside>
+
+  <div class="stage-panel">
+    <label>🧊 Mesh 3D 작업대</label>
+    <div id="assemblyStage">
+      <div class="wasd-help">🎮 <b>WASD</b> 이동 · <b>Q/E</b> 위/아래 · <b>Shift</b> 빠르게 · 마우스 드래그 회전 · 휠 확대</div>
+      <div id="dropHint">부품을 여기로 끌어오세요<br>또는 부품을 클릭해서 추가</div>
+      <div class="stage-badge">MESH 3D</div>
+    </div>
+    <div class="toolbar">
+      <button class="secondary" onclick="setTransformMode('translate')">↔ 이동</button>
+      <button class="secondary" onclick="setTransformMode('rotate')">⟳ 회전</button>
+      <button class="secondary" onclick="setTransformMode('scale')">⤢ 크기</button>
+      <button class="secondary" onclick="duplicateSelected()">⧉ 복제</button>
+      <button class="delete" onclick="deleteSelected()">✕ 선택 삭제</button>
+      <button class="secondary" onclick="clearAssembly()">🧹 전체 삭제</button>
+      <button class="secondary" onclick="saveAssembly()">💾 설계 저장</button>
+      <button class="primary" onclick="testAssembly()">🚀 로봇 테스트</button>
+    </div>
+  </div>
+
+  <aside class="inspector">
+    <h3>🎛️ 부품 Inspector</h3>
+    <div id="selectedName" class="selected-name">선택된 부품 없음</div>
+    <div class="axis-grid">
+      <label>X <input id="posX" type="number" step="0.1" onchange="applyInspector()"></label>
+      <label>Y <input id="posY" type="number" step="0.1" onchange="applyInspector()"></label>
+      <label>Z <input id="posZ" type="number" step="0.1" onchange="applyInspector()"></label>
+      <label>RX° <input id="rotX" type="number" step="5" onchange="applyInspector()"></label>
+      <label>RY° <input id="rotY" type="number" step="5" onchange="applyInspector()"></label>
+      <label>RZ° <input id="rotZ" type="number" step="5" onchange="applyInspector()"></label>
+      <label>크기 <input id="scaleAll" type="number" step="0.1" min="0.1" onchange="applyInspector()"></label>
+    </div>
+    <button class="secondary" style="width:100%;margin-top:8px" onclick="resetSelectedTransform()">↺ 변환 초기화</button>
+    <div class="small" style="margin-top:10px">마우스 왼쪽 드래그: 시점 회전<br>휠: 확대/축소<br>부품 클릭: 선택</div>
+  </aside>
+</div>
+
+<div class="stats" style="margin-top:14px">
+  <div class="stat"><b id="gPower">0</b>출력</div>
+  <div class="stat"><b id="gControl">0</b>제어</div>
+  <div class="stat"><b id="gDurability">0</b>내구성</div>
+</div>
+<div id="assemblyResult" class="empty">Mesh 부품을 조립하면 로봇의 성능이 계산됩니다.</div>
+<p class="small">🏆 누적 RB: <b id="gRB">0</b> RB · 최고 기록: <b id="gBest">0</b>점</p>
+</section>
+
+  <section class="card">
+    <h2>➕ 숙제 추가</h2>
+    <div class="grid">
+      <div>
+        <label>과목</label>
+        <select id="subject">
+          <option>수학</option><option>과학</option><option>영어</option>
+          <option>Python</option><option>로봇공학</option><option>로봇설계</option>
+          <option>기타</option>
+        </select>
+      </div>
+      <div>
+        <label>마감일</label>
+        <input id="deadline" type="date">
+      </div>
+      <div>
+        <label>숙제 내용</label>
+        <textarea id="content" placeholder="예: 수학 문제집 20~25번"></textarea>
+      </div>
+      <div>
+        <label>예상 공부 시간(분)</label>
+        <input id="minutes" type="number" min="1" placeholder="30">
+      </div>
+      <div>
+        <label>난이도</label>
+        <select id="difficulty">
+          <option>쉬움</option><option selected>보통</option><option>어려움</option><option>보스</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="primary" onclick="addHomework()">숙제 등록</button>
+      <button class="secondary" onclick="clearForm()">초기화</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>📚 숙제 목록</h2>
+    <div id="homeworkList"></div>
+  </section>
+
+  <section class="card">
+    <h2>📊 통계</h2>
+    <div class="stats">
+      <div class="stat"><b id="total">0</b>전체</div>
+      <div class="stat"><b id="done">0</b>완료</div>
+      <div class="stat"><b id="remain">0</b>남음</div>
+    </div>
+  </section>
+</main>
+
+<script>
+const STORAGE_KEY = "D1_HOMEWORK_LIST";
+const RSS_URL = "https://spectrum.ieee.org/feeds/topic/robotics.rss";
+const RSS_API = "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(RSS_URL);
+
+let homework = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+
+function todayString(){
+  const d = new Date();
+  return d.toISOString().slice(0,10);
+}
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(homework)); }
+function esc(s){
+  return String(s ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+function render(){
+  const list = document.getElementById("homeworkList");
+  if(!homework.length){
+    list.innerHTML = '<div class="empty">등록된 숙제가 없습니다.</div>';
+  }else{
+    list.innerHTML = homework.map((h,i)=>`
+      <div class="homework ${h.done ? "done":""}">
+        <input type="checkbox" ${h.done ? "checked":""} onchange="toggleDone(${i})">
+        <div class="content">
+          <b>${esc(h.subject)} · ${esc(h.content)}</b>
+          <div class="meta">마감 ${esc(h.deadline || "-")} · ${esc(h.minutes || 0)}분 · 난이도 ${esc(h.difficulty)}</div>
+        </div>
+        <button class="delete" onclick="deleteHomework(${i})">삭제</button>
+      </div>`).join("");
+  }
+  const today = todayString();
+  const todayItems = homework.filter(h=>h.deadline===today && !h.done);
+  document.getElementById("todayHomework").innerHTML = todayItems.length
+    ? todayItems.map(h=>`<div class="homework"><div class="content"><b>${esc(h.subject)} · ${esc(h.content)}</b><div class="meta">${esc(h.minutes || 0)}분 · ${esc(h.difficulty)}</div></div></div>`).join("")
+    : '<div class="empty">오늘 마감인 미완료 숙제가 없습니다. 👍</div>';
+  const done = homework.filter(h=>h.done).length;
+  document.getElementById("total").textContent = homework.length;
+  document.getElementById("done").textContent = done;
+  document.getElementById("remain").textContent = homework.length-done;
+}
+function addHomework(){
+  const content = document.getElementById("content").value.trim();
+  if(!content){ alert("숙제 내용을 입력해 주세요."); return; }
+  homework.push({
+    subject:document.getElementById("subject").value,
+    content,
+    deadline:document.getElementById("deadline").value,
+    minutes:Number(document.getElementById("minutes").value || 0),
+    difficulty:document.getElementById("difficulty").value,
+    done:false,
+    createdAt:new Date().toISOString()
+  });
+  save(); clearForm(); render();
+}
+function clearForm(){
+  document.getElementById("content").value="";
+  document.getElementById("deadline").value=todayString();
+  document.getElementById("minutes").value="";
+}
+function toggleDone(i){ homework[i].done=!homework[i].done; save(); render(); }
+function deleteHomework(i){
+  if(confirm("이 숙제를 삭제할까요?")){
+    homework.splice(i,1); save(); render();
+  }
+}
+
+function cleanText(html){
+  const box=document.createElement("div");
+  box.innerHTML=html || "";
+  return box.textContent.replace(/\s+/g," ").trim();
+}
+function getTags(title){
+  const t=title.toLowerCase();
+  const tags=[];
+  if(/humanoid|human|leg|walking|grip|hand|arm/.test(t)) tags.push("휴머노이드","메커니즘");
+  if(/ai|learning|vision|camera|emotion|model/.test(t)) tags.push("AI","컴퓨터 비전");
+  if(/drone|fly|flight/.test(t)) tags.push("드론","자율주행");
+  if(/sensor|lidar|laser|detect/.test(t)) tags.push("센서","인지");
+  if(/industrial|factory|weld|manufactur/.test(t)) tags.push("산업용 로봇","자동화");
+  if(/medical|blood|health/.test(t)) tags.push("의료로봇","바이오");
+  if(!tags.length) tags.push("로봇공학","자동화");
+  return [...new Set(tags)].slice(0,4);
+}
+function renderNews(item){
+  const title=cleanText(item.title);
+  const desc=cleanText(item.description);
+  const date=item.pubDate ? new Date(item.pubDate) : null;
+  const dateText=date && !isNaN(date) ? date.toLocaleDateString("ko-KR") : "최신";
+  const tags=getTags(title);
+  const safeLink=String(item.link || "https://spectrum.ieee.org/topic/robotics/");
+  document.getElementById("robotNews").innerHTML=`
+    <div class="news-title">${esc(title)}</div>
+    <div class="news-meta">출처: IEEE Spectrum · ${dateText}</div>
+    <div class="news-tags">${tags.map(x=>`<span class="tag">#${esc(x)}</span>`).join("")}</div>
+    <div class="news-desc">최신 로봇공학 기사입니다. 원문에서 새로운 로봇 기술과 설계 아이디어를 확인해 보세요.</div>
+    <p class="small">💡 D-1 포인트: 기사에서 <b>센서 → 제어 → 구동 → 피드백</b>이 어떻게 연결되는지 찾아보세요.</p>
+    <div class="news-actions">
+      <button class="primary" onclick="openNews()">기사 원문 보기 ↗</button>
+      <button class="secondary" onclick="loadRobotNews()">새로고침</button>
+    </div>`;
+  window.currentNewsLink=safeLink;
+}
+function openNews(){
+  window.open(window.currentNewsLink || "https://spectrum.ieee.org/topic/robotics/","_blank","noopener");
+}
+async function loadRobotNews(){
+  const el=document.getElementById("robotNews");
+  el.className="loading";
+  el.textContent="최신 로봇공학 기사를 불러오는 중...";
+  try{
+    const res=await fetch(RSS_API,{cache:"no-store"});
+    if(!res.ok) throw new Error("network");
+    const data=await res.json();
+    if(data.status!=="ok" || !data.items || !data.items.length) throw new Error("feed");
+    renderNews(data.items[0]);
+  }catch(e){
+    el.className="";
+    el.innerHTML=`<div class="error">최신 기사를 자동으로 불러오지 못했습니다.<br>
+    인터넷 연결을 확인하거나 아래 버튼으로 IEEE Spectrum의 최신 로봇공학 페이지를 열어보세요.</div>
+    <div class="news-actions" style="margin-top:10px">
+      <button class="primary" onclick="window.open('https://spectrum.ieee.org/topic/robotics/','_blank','noopener')">최신 기사 페이지 ↗</button>
+      <button class="secondary" onclick="loadRobotNews()">다시 시도</button>
+    </div>`;
+  }
+}
+
+
+
+
+const GAME_KEY="D1_ROBOT_ASSEMBLY_V2";
+let gameData=JSON.parse(localStorage.getItem(GAME_KEY)||'{"rb":0,"best":0,"parts":[]}');
+
+const parts=[
+ {id:"chassis",name:"차체",keywords:"chassis frame body carbon frame",shape:"chassis",p:5,c:4,d:18},
+ {id:"wheel",name:"바퀴",keywords:"wheel tire drive",shape:"wheel",p:7,c:3,d:8},
+ {id:"motor",name:"모터",keywords:"motor bldc dc drive",shape:"motor",p:18,c:3,d:5},
+ {id:"lidar",name:"LiDAR",keywords:"lidar laser sensor distance",shape:"lidar",p:3,c:20,d:2},
+ {id:"camera",name:"카메라",keywords:"camera vision",shape:"camera",p:2,c:18,d:2},
+ {id:"imu",name:"IMU",keywords:"imu gyro gyroscope attitude",shape:"imu",p:2,c:15,d:4},
+ {id:"battery",name:"배터리",keywords:"battery power 24v 48v",shape:"battery",p:10,c:2,d:8},
+ {id:"arm",name:"로봇 팔",keywords:"robot arm manipulator 6 axis",shape:"arm",p:8,c:12,d:6},
+ {id:"gripper",name:"그리퍼",keywords:"gripper hand claw",shape:"gripper",p:4,c:10,d:4},
+ {id:"track",name:"무한궤도",keywords:"track crawler tracked",shape:"track",p:6,c:4,d:15},
+ {id:"gps",name:"GPS",keywords:"gps navigation position",shape:"gps",p:1,c:14,d:2},
+ {id:"controller",name:"컨트롤러",keywords:"controller control cpu brain",shape:"controller",p:3,c:22,d:5}
+];
+
+let scene,camera,renderer,assemblyGroup,transformControls,raycaster,mouse;
+let assembled=[]; // {uid,id,object}
+let selected=null, uidCounter=0;
+
+function saveGame(){localStorage.setItem(GAME_KEY,JSON.stringify(gameData));updateGameHUD();}
+function updateGameHUD(){document.getElementById("gRB").textContent=gameData.rb;document.getElementById("gBest").textContent=gameData.best;}
+function filterParts(){
+ const q=document.getElementById("partSearch").value.toLowerCase().trim();
+ const list=parts.filter(p=>(p.name+" "+p.keywords).toLowerCase().includes(q));
+ document.getElementById("partsPalette").innerHTML=list.map(p=>`
+ <div draggable="true" data-part="${p.id}" class="part-card">
+   <div class="part-icon">${partIcon(p.id)}</div><div><b>${p.name}</b><div class="small">${p.keywords.split(" ").slice(0,4).join(" · ")}</div></div>
+ </div>`).join("") || '<div class="empty">검색 결과가 없습니다.</div>';
+ document.querySelectorAll(".part-card").forEach(el=>{
+   el.addEventListener("dragstart",e=>e.dataTransfer.setData("text/plain",el.dataset.part));
+   el.addEventListener("click",()=>addPart(el.dataset.part));
+ });
+}
+function partIcon(id){return ({chassis:"▣",wheel:"◉",motor:"⚙",lidar:"◉",camera:"▣",imu:"⌁",battery:"▰",arm:"╱",gripper:"⌁",track:"▤",gps:"⌖",controller:"▦"})[id]||"◆";}
+
+function mat(hex,metal=.45,rough=.3){return new THREE.MeshStandardMaterial({color:hex,metalness:metal,roughness:rough});}
+function addBox(group,w,h,d,x,y,z,m){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);group.add(o);return o;}
+function addCylinder(group,r,h,x,y,z,rx,ry,rz,m,seg=24){const o=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,seg),m);o.position.set(x,y,z);o.rotation.set(rx,ry,rz);group.add(o);return o;}
+function addTorus(group,R,r,x,y,z,rx,ry,rz,m){const o=new THREE.Mesh(new THREE.TorusGeometry(R,r,12,32),m);o.position.set(x,y,z);o.rotation.set(rx,ry,rz);group.add(o);return o;}
+function makePartObject(p){
+ const root=new THREE.Group();root.userData={partId:p.id};
+ const dark=mat(0x334155,.7,.25), steel=mat(0x94a3b8,.75,.22), blue=mat(0x2563eb,.55,.25), black=mat(0x111827,.65,.2), white=mat(0xe5e7eb,.4,.25), green=mat(0x22c55e,.35,.3), orange=mat(0xf59e0b,.45,.28);
+ if(p.shape==="chassis"){
+   addBox(root,2.8,.35,1.8,0,.25,0,dark); addBox(root,2.4,.18,1.4,0,.5,0,steel);
+   for(const x of [-1.1,1.1]) for(const z of [-.65,.65]) addCylinder(root,.08,.25,x,.68,z,0,0,0,blue,16);
+ } else if(p.shape==="wheel"){
+   addCylinder(root,.52,.24,0,0,0,Math.PI/2,0,0,black,32); addCylinder(root,.24,.27,0,0,0,Math.PI/2,0,0,steel,24); addCylinder(root,.08,.3,0,0,0,Math.PI/2,0,0,blue,20);
+ } else if(p.shape==="motor"){
+   addCylinder(root,.3,.65,0,0,0,0,0,0,steel,28); addCylinder(root,.16,.72,0,.02,0,0,0,0,black,24); addCylinder(root,.12,.82,0,.05,0,0,0,blue,20);
+   for(let i=0;i<8;i++){let a=i*Math.PI/4;addBox(root,.05,.1,.42,Math.cos(a)*.23,.34,Math.sin(a)*.23,blue)}
+ } else if(p.shape==="lidar"){
+   addCylinder(root,.3,.22,0,.12,0,0,0,0,black,32); addCylinder(root,.24,.28,0,.35,0,0,0,0,steel,32); addTorus(root,.27,.045,0,.5,0,0,0,0,blue); addCylinder(root,.08,.12,0,.6,0,0,0,0,black,20);
+ } else if(p.shape==="camera"){
+   addBox(root,.62,.42,.48,0,.25,0,black); addCylinder(root,.18,.16,.0,.25,.28,Math.PI/2,0,0,blue,24); addBox(root,.12,.1,.1,.22,.45,.0,green);
+ } else if(p.shape==="imu"){
+   addBox(root,.58,.12,.45,0,.08,0,blue); for(let x of [-.2,.2]) for(let z of [-.12,.12]) addCylinder(root,.035,.1,x,.15,z,0,0,0,steel,16);
+   addBox(root,.22,.06,.16,0,.16,0,black);
+ } else if(p.shape==="battery"){
+   addBox(root,1.0,.45,.6,0,.25,0,black); addBox(root,.78,.05,.38,0,.5,0,orange); for(let x of [-.25,.25]) addCylinder(root,.055,.12,x,.58,0,0,0,0,blue,16);
+ } else if(p.shape==="arm"){
+   addCylinder(root,.22,.22,0,.1,0,0,0,0,blue,24); addBox(root,.22,1.5,.22,0,.9,0,steel); addCylinder(root,.18,.28,0,1.7,0,0,0,0,blue,24); addBox(root,.16,.65,.16,.0,2.15,0,steel);
+ } else if(p.shape==="gripper"){
+   addBox(root,.18,.35,.18,0,.2,0,steel); addBox(root,.55,.1,.1,.28,.45,0,blue); addBox(root,.1,.5,.1,.55,.62,0,steel); addBox(root,.1,.5,.1,.01,.62,0,steel);
+ } else if(p.shape==="track"){
+   for(const x of [-.85,.85]){addBox(root,.38,.65,1.5,x,.35,0,black);addCylinder(root,.28,.18,x,.35,-.8,Math.PI/2,0,0,steel);addCylinder(root,.28,.18,x,.35,.8,Math.PI/2,0,0,steel)}
+ } else if(p.shape==="gps"){
+   addCylinder(root,.28,.16,0,.1,0,0,0,0,blue,24); addCylinder(root,.06,.7,0,.48,0,0,0,0,steel,20); addBox(root,.4,.08,.3,0,.85,0,black);
+ } else if(p.shape==="controller"){
+   addBox(root,.95,.3,.7,0,.25,0,black); addBox(root,.65,.05,.4,0,.43,0,blue); for(let x of [-.3,.3]) for(let z of [-.2,.2]) addCylinder(root,.035,.12,x,.46,z,0,0,0,green,16);
+ }
+ return root;
+}
+function init3D(){
+ const target=document.getElementById("assemblyStage");
+ if(typeof THREE==="undefined"){target.innerHTML='<div class="error" style="margin:20px">Three.js를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.</div>';return;}
+ scene=new THREE.Scene();scene.background=new THREE.Color(0x0b1220);
+ camera=new THREE.PerspectiveCamera(45,target.clientWidth/target.clientHeight,.1,1000);camera.position.set(7,5,9);
+ renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(target.clientWidth,target.clientHeight);renderer.outputEncoding=THREE.sRGBEncoding;target.appendChild(renderer.domElement);
+ scene.add(new THREE.HemisphereLight(0xffffff,0x1e293b,2.1));const dl=new THREE.DirectionalLight(0xffffff,2.5);dl.position.set(5,10,7);scene.add(dl);
+ const grid=new THREE.GridHelper(14,28,0x334155,0x1e293b);scene.add(grid);
+ assemblyGroup=new THREE.Group();scene.add(assemblyGroup);raycaster=new THREE.Raycaster();mouse=new THREE.Vector2();
+ if(typeof THREE.TransformControls!=="undefined"){
+   transformControls=new THREE.TransformControls(camera,renderer.domElement);transformControls.setSize(.8);transformControls.addEventListener('dragging-changed',e=>{orbitDragging=!e.value});scene.add(transformControls);
+ }
+ let orbit=false,lastX=0,lastY=0;window.orbitDragging=false;
+ renderer.domElement.addEventListener("pointerdown",e=>{if(e.button!==0)return; if(transformControls && transformControls.dragging)return; orbit=true;lastX=e.clientX;lastY=e.clientY;selectAt(e);});
+ window.addEventListener("pointerup",()=>orbit=false);
+ renderer.domElement.addEventListener("pointermove",e=>{if(!orbit||window.orbitDragging)return;assemblyGroup.rotation.y+=(e.clientX-lastX)*.01;assemblyGroup.rotation.x=Math.max(-.6,Math.min(.6,assemblyGroup.rotation.x+(e.clientY-lastY)*.006));lastX=e.clientX;lastY=e.clientY;});
+ renderer.domElement.addEventListener("wheel",e=>{e.preventDefault();camera.position.multiplyScalar(e.deltaY>0?1.08:.93);camera.position.y=Math.max(1.2,Math.min(18,camera.position.y));camera.lookAt(0,.7,0);},{passive:false});
+ // 🎮 WASD 카메라 이동: 작업실 안을 직접 돌아다니는 느낌
+ const keys={w:false,a:false,s:false,d:false,q:false,e:false,shift:false};
+ window.addEventListener("keydown",e=>{
+   const tag=(e.target&&e.target.tagName)||"";
+   if(["INPUT","TEXTAREA","SELECT"].includes(tag)||e.target?.isContentEditable)return;
+   const k=e.key.toLowerCase();
+   if(k in keys){keys[k]=true;e.preventDefault();}
+ });
+ window.addEventListener("keyup",e=>{const k=e.key.toLowerCase();if(k in keys){keys[k]=false;e.preventDefault();}});
+ window.addEventListener("blur",()=>Object.keys(keys).forEach(k=>keys[k]=false));
+ const moveDir=new THREE.Vector3(),rightDir=new THREE.Vector3(),lookTarget=new THREE.Vector3();
+ function moveCamera(){
+   const speed=keys.shift?0.13:0.055;
+   camera.getWorldDirection(moveDir);
+   moveDir.y=0;
+   if(moveDir.lengthSq()<0.0001)moveDir.set(0,0,-1);
+   moveDir.normalize();
+   rightDir.crossVectors(moveDir,camera.up).normalize();
+   if(keys.w)camera.position.addScaledVector(moveDir,speed);
+   if(keys.s)camera.position.addScaledVector(moveDir,-speed);
+   if(keys.a)camera.position.addScaledVector(rightDir,-speed);
+   if(keys.d)camera.position.addScaledVector(rightDir,speed);
+   if(keys.q)camera.position.y=Math.max(1.2,camera.position.y-speed);
+   if(keys.e)camera.position.y=Math.min(18,camera.position.y+speed);
+   const r=Math.hypot(camera.position.x,camera.position.z);
+   if(r<1.5){const f=1.5/Math.max(r,0.001);camera.position.x*=f;camera.position.z*=f;}
+   lookTarget.set(0,.7,0);camera.lookAt(lookTarget);
+ }
+ target.addEventListener("dragover",e=>e.preventDefault());target.addEventListener("drop",e=>{e.preventDefault();const id=e.dataTransfer.getData("text/plain");if(id)addPart(id);});
+ window.addEventListener("resize",resize3D);
+ function loop(){requestAnimationFrame(loop);moveCamera();renderer.render(scene,camera)}loop();
+}
+function resize3D(){const t=document.getElementById("assemblyStage");if(!renderer||!camera)return;camera.aspect=t.clientWidth/t.clientHeight;camera.updateProjectionMatrix();renderer.setSize(t.clientWidth,t.clientHeight);}
+function selectAt(e){
+ if(!raycaster)return;const rect=renderer.domElement.getBoundingClientRect();mouse.x=((e.clientX-rect.left)/rect.width)*2-1;mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;raycaster.setFromCamera(mouse,camera);
+ const hits=raycaster.intersectObjects(assemblyGroup.children,true);if(!hits.length){selectObject(null);return;}
+ let o=hits[0].object;while(o.parent && o.parent!==assemblyGroup)o=o.parent;selectObject(o);
+}
+function selectObject(o){selected=o;if(transformControls){if(o)transformControls.attach(o);else transformControls.detach();}updateInspector();assembled.forEach(a=>a.object.traverse(m=>{if(m.isMesh)m.material.emissive=new THREE.Color(m===o?0x1d4ed8:0x000000)}));}
+function addPart(id,data=null){
+ const p=parts.find(x=>x.id===id);if(!p||!assemblyGroup)return;const obj=makePartObject(p);obj.userData.uid=++uidCounter;obj.userData.partId=id;
+ const i=assembled.length;obj.position.set(((i%4)-1.5)*1.5,.6+Math.floor(i/4)*.45,((i%3)-1)*1.2);if(data){obj.position.set(data.x,data.y,data.z);obj.rotation.set(data.rx,data.ry,data.rz);obj.scale.setScalar(data.s||1)}
+ assemblyGroup.add(obj);assembled.push({uid:obj.userData.uid,id,object:obj});selectObject(obj);document.getElementById("dropHint").style.display="none";updateAssemblyStats();}
+function removeEntry(o){assembled=assembled.filter(a=>a.object!==o);}
+function deleteSelected(){if(!selected)return;const o=selected;if(transformControls)transformControls.detach();assemblyGroup.remove(o);removeEntry(o);selected=null;updateInspector();updateAssemblyStats();if(!assembled.length)document.getElementById("dropHint").style.display="block";}
+function duplicateSelected(){if(!selected)return;const a=assembled.find(x=>x.object===selected);if(!a)return;const d={x:selected.position.x+.5,y:selected.position.y,z:selected.position.z+.5,rx:selected.rotation.x,ry:selected.rotation.y,rz:selected.rotation.z,s:selected.scale.x};addPart(a.id,d);}
+function clearAssembly(){if(transformControls)transformControls.detach();assembled=[];selected=null;if(assemblyGroup)while(assemblyGroup.children.length)assemblyGroup.remove(assemblyGroup.children[0]);document.getElementById("dropHint").style.display="block";updateInspector();updateAssemblyStats();}
+function setTransformMode(mode){if(transformControls){transformControls.setMode(mode);if(selected)transformControls.attach(selected)}else alert("TransformControls를 불러오지 못했습니다.");}
+function updateInspector(){
+ const ids=["posX","posY","posZ","rotX","rotY","rotZ","scaleAll"];const name=document.getElementById("selectedName");
+ if(!selected){name.textContent="선택된 부품 없음";ids.forEach(id=>document.getElementById(id).value="");return;}
+ const p=parts.find(x=>x.id===selected.userData.partId);name.textContent=(p?p.name:selected.userData.partId)+" · Mesh";
+ document.getElementById("posX").value=selected.position.x.toFixed(2);document.getElementById("posY").value=selected.position.y.toFixed(2);document.getElementById("posZ").value=selected.position.z.toFixed(2);
+ document.getElementById("rotX").value=Math.round(THREE.MathUtils.radToDeg(selected.rotation.x));document.getElementById("rotY").value=Math.round(THREE.MathUtils.radToDeg(selected.rotation.y));document.getElementById("rotZ").value=Math.round(THREE.MathUtils.radToDeg(selected.rotation.z));document.getElementById("scaleAll").value=selected.scale.x.toFixed(2);
+}
+function applyInspector(){if(!selected)return;selected.position.set(+document.getElementById("posX").value||0,+document.getElementById("posY").value||0,+document.getElementById("posZ").value||0);selected.rotation.set(THREE.MathUtils.degToRad(+document.getElementById("rotX").value||0),THREE.MathUtils.degToRad(+document.getElementById("rotY").value||0),THREE.MathUtils.degToRad(+document.getElementById("rotZ").value||0));const s=Math.max(.1,+document.getElementById("scaleAll").value||1);selected.scale.setScalar(s);}
+function resetSelectedTransform(){if(!selected)return;selected.position.set(0,.6,0);selected.rotation.set(0,0,0);selected.scale.setScalar(1);updateInspector();}
+function updateAssemblyStats(){let s={p:0,c:0,d:0};assembled.forEach(a=>{const p=parts.find(x=>x.id===a.id);if(p){s.p+=p.p;s.c+=p.c;s.d+=p.d;}});document.getElementById("gPower").textContent=s.p;document.getElementById("gControl").textContent=s.c;document.getElementById("gDurability").textContent=s.d;}
+function serializeAssembly(){return assembled.map(a=>({id:a.id,x:a.object.position.x,y:a.object.position.y,z:a.object.position.z,rx:a.object.rotation.x,ry:a.object.rotation.y,rz:a.object.rotation.z,s:a.object.scale.x}));}
+function saveAssembly(){gameData.parts=serializeAssembly();saveGame();document.getElementById("assemblyResult").innerHTML='<div class="empty">💾 위치·회전·크기까지 포함한 Mesh 3D 설계를 저장했습니다.</div>';}
+function testAssembly(){
+ let s={p:0,c:0,d:0};assembled.forEach(a=>{const p=parts.find(x=>x.id===a.id);if(p){s.p+=p.p;s.c+=p.c;s.d+=p.d;}});
+ if(!assembled.length){document.getElementById("assemblyResult").innerHTML='<div class="error">먼저 부품을 하나 이상 조립하세요.</div>';return;}
+ let score=Math.min(100,Math.round((s.p+s.c+s.d)*.7));let grade=score>=90?"S":score>=75?"A":score>=60?"B":score>=45?"C":"D";let reward=grade==="S"?100:grade==="A"?70:grade==="B"?40:grade==="C"?20:5;gameData.rb+=reward;if(score>gameData.best)gameData.best=score;saveGame();
+ document.getElementById("assemblyResult").innerHTML=`<div style="font-size:26px;font-weight:900">ASSEMBLY ${grade} · ${score}점</div><div style="margin-top:7px">Mesh 부품 ${assembled.length}개로 구성된 로봇입니다.</div><div class="meta" style="margin-top:8px">출력 ${s.p} · 제어 ${s.c} · 내구성 ${s.d} · 보상 +${reward} RB</div>`;
+}
+function loadAssembly(){if(!gameData.parts||!gameData.parts.length)return;gameData.parts.forEach(x=>{if(typeof x==='string')addPart(x);else addPart(x.id,x)});}
+
+filterParts();init3D();updateGameHUD();updateAssemblyStats();
+setTimeout(loadAssembly,100);
+
+document.getElementById("dateText").textContent =
+  new Date().toLocaleDateString("ko-KR",{year:"numeric",month:"long",day:"numeric",weekday:"long"});
+document.getElementById("deadline").value=todayString();
+render();
+loadRobotNews();
+</script>
+</body>
+</html>
